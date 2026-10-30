@@ -1,0 +1,247 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>كم تصمد كلمة مرورك؟</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: single column — input up top, one giant "time to crack" readout, a strength meter, then stat chips. */
+  :root{
+    --bg:#f3f5fa; --bg2:#e9edf6; --panel:#ffffff; --line:#e3e8f1;
+    --ink:#161b26; --muted:#616b7d; --faint:#8b93a4; --field:#f6f8fc;
+    --accent:#2f6bea;
+    --t0:#e5484d; --t1:#f2800a; --t2:#f5c518; --t3:#7cbf3f; --t4:#2fae6b;
+    --chip:#eef2fa;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#0f1218; --bg2:#141924; --panel:#171d28; --line:#262e3c;
+    --ink:#eef1f7; --muted:#9aa4b6; --faint:#6c7689; --field:#121722; --chip:#1b2230;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0f1218; --bg2:#141924; --panel:#171d28; --line:#262e3c;
+    --ink:#eef1f7; --muted:#9aa4b6; --faint:#6c7689; --field:#121722; --chip:#1b2230;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:radial-gradient(130% 120% at 50% -10%, var(--bg2), var(--bg));
+    color:var(--ink);
+    font-family:"IBM Plex Sans Arabic","Cairo",system-ui,"Segoe UI",sans-serif;
+    min-height:100%;
+    padding-block:28px;
+    padding-left:max(16px,env(safe-area-inset-left,0px));
+    padding-right:max(16px,env(safe-area-inset-right,0px));
+  }
+  .wrap{direction:rtl; width:100%; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:18px}
+
+  header{text-align:center}
+  header h1{margin:0 0 6px; font-family:"Cairo",sans-serif; font-weight:800; font-size:clamp(24px,6vw,32px)}
+  header p{margin:0; font-size:14px; color:var(--muted)}
+
+  .inputCard{background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px}
+  .pw{position:relative}
+  .pw input{
+    width:100%; font:inherit; font-size:20px; letter-spacing:.5px; color:var(--ink);
+    background:var(--field); border:2px solid var(--line); border-radius:13px;
+    padding:15px 16px; padding-inline-start:70px; outline:none; direction:ltr; text-align:left;
+    transition:border-color .15s;
+  }
+  .pw input:focus{border-color:var(--accent)}
+  .pw input::placeholder{color:var(--faint); letter-spacing:0}
+  .pw .eye{position:absolute; inset-inline-start:10px; top:50%; transform:translateY(-50%);
+    border:0; background:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; padding:6px}
+  .samples{display:flex; flex-wrap:wrap; gap:8px; margin-top:13px}
+  .samples span{font-size:12px; color:var(--faint); align-self:center; margin-inline-end:2px}
+  .samples button{
+    font:inherit; font-size:12.5px; cursor:pointer; direction:ltr;
+    background:var(--chip); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:6px 12px;
+  }
+  .samples button:hover{border-color:var(--accent); color:var(--ink)}
+
+  .result{background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:26px 20px; text-align:center;
+    border-top:5px solid var(--t2); transition:border-color .25s}
+  .result .lead{font-size:14px; color:var(--muted); margin:0 0 6px}
+  .result .time{font-family:"Cairo",sans-serif; font-weight:900; font-size:clamp(34px,10vw,58px); line-height:1.05; color:var(--t2); transition:color .25s; word-break:break-word}
+  .result .tier{display:inline-block; margin-top:12px; font-weight:700; font-size:14.5px; padding:6px 16px; border-radius:999px; color:#fff; background:var(--t2); transition:background .25s}
+  .result .hint{margin:12px 0 0; font-size:12.5px; color:var(--faint)}
+
+  .meter{height:12px; border-radius:999px; background:var(--chip); overflow:hidden; border:1px solid var(--line)}
+  .meter i{display:block; height:100%; width:0; border-radius:999px; background:var(--t2); transition:width .3s, background .25s}
+
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 10px; text-align:center; min-width:0}
+  .stat .n{font-family:"Cairo",sans-serif; font-weight:800; font-size:22px; font-variant-numeric:tabular-nums; direction:ltr}
+  .stat .l{font-size:12px; color:var(--muted); margin-top:3px}
+
+  .tips{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px}
+  .tips h3{margin:0 0 11px; font-family:"Cairo",sans-serif; font-size:15.5px; font-weight:700}
+  .tips ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px}
+  .tips li{position:relative; padding-inline-start:22px; font-size:13.6px; color:var(--ink); line-height:1.6}
+  .tips li::before{content:""; position:absolute; inset-inline-start:0; top:8px; width:8px; height:8px; border-radius:50%; background:var(--t4)}
+  .foot{text-align:center; font-size:11.5px; color:var(--faint); line-height:1.7}
+  @media (max-width:420px){ .stats{grid-template-columns:1fr} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>كم تصمد كلمة مرورك؟</h1>
+    <p>اكتب كلمة مرور (أو جرّب الأمثلة) وشاهد كم يستغرق كسرها</p>
+  </header>
+
+  <div class="inputCard">
+    <div class="pw">
+      <input id="pw" type="text" dir="ltr" placeholder="اكتب هنا..." autocomplete="off" spellcheck="false" aria-label="كلمة المرور">
+      <button type="button" id="eye" class="eye">إخفاء</button>
+    </div>
+    <div class="samples">
+      <span>جرّب:</span>
+      <button type="button" data-pw="123456">123456</button>
+      <button type="button" data-pw="Ahmed2020">Ahmed2020</button>
+      <button type="button" data-pw="P@ssw0rd!">P@ssw0rd!</button>
+      <button type="button" data-pw="7xQ!mz9@Lp2#">7xQ!mz9@Lp2#</button>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <p class="lead">يُكسَر في</p>
+    <div class="time" id="time">—</div>
+    <div class="tier" id="tier">ابدأ بالكتابة</div>
+    <p class="hint" id="hint">&nbsp;</p>
+  </div>
+
+  <div class="meter"><i id="bar"></i></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="sLen" style="color:var(--accent)">0</div><div class="l">عدد الأحرف</div></div>
+    <div class="stat"><div class="n" id="sVar" style="color:var(--accent)">0</div><div class="l">أنواع الأحرف</div></div>
+    <div class="stat"><div class="n" id="sCombo" style="color:var(--accent)">—</div><div class="l">عدد الاحتمالات</div></div>
+  </div>
+
+  <div class="tips">
+    <h3>كلمة المرور القوية</h3>
+    <ul>
+      <li>طويلة — ١٢ حرفًا أو أكثر (الطول أهم من التعقيد)</li>
+      <li>تخلط بين أحرف كبيرة وصغيرة وأرقام ورموز</li>
+      <li>ليست كلمة شائعة ولا اسمك ولا تاريخ ميلادك</li>
+      <li>مختلفة لكل حساب — واستخدم مدير كلمات مرور</li>
+    </ul>
+  </div>
+
+  <p class="foot">تقدير تقريبي بافتراض مهاجم يجرّب ١٠ مليار محاولة في الثانية.<br>عرض تعليمي — لا تُحفظ كلمة المرور ولا تُرسَل لأي مكان.</p>
+</div>
+
+<script>
+(function(){
+  var RATE=1e10;                 // guesses per second (offline fast attack)
+  var LOG2=Math.log10(2);
+  var YEAR_SECS=31557600;
+  var common={ "123456":1,"123456789":1,"password":1,"12345678":1,"qwerty":1,"111111":1,
+    "123123":1,"abc123":1,"000000":1,"iloveyou":1,"admin":1,"welcome":1,"monkey":1,
+    "dragon":1,"1234567890":1,"letmein":1,"password1":1,"qwerty123":1 };
+  var tierColors=['var(--t0)','var(--t1)','var(--t2)','var(--t3)','var(--t4)'];
+  var tierNames=['ضعيفة جدًا','ضعيفة','متوسطة','جيدة','قوية جدًا'];
+
+  var pw=document.getElementById('pw'), eye=document.getElementById('eye');
+  var timeEl=document.getElementById('time'), tierEl=document.getElementById('tier'), hintEl=document.getElementById('hint');
+  var bar=document.getElementById('bar'), result=document.getElementById('result');
+  var sLen=document.getElementById('sLen'), sVar=document.getElementById('sVar'), sCombo=document.getElementById('sCombo');
+
+  function poolAndVariety(s){
+    var lower=/[a-z]/.test(s), upper=/[A-Z]/.test(s), digit=/[0-9]/.test(s);
+    var sym=/[^a-zA-Z0-9؀-ۿ]/.test(s), ar=/[؀-ۿ]/.test(s);
+    var pool=0, variety=0;
+    if(lower){pool+=26;variety++;}
+    if(upper){pool+=26;variety++;}
+    if(digit){pool+=10;variety++;}
+    if(sym){pool+=33;variety++;}
+    if(ar){pool+=40;variety++;}
+    if(pool===0) pool=1;
+    return {pool:pool, variety:variety};
+  }
+
+  // compact Arabic count for the combinations chip
+  function comboLabel(log10){
+    if(log10<3) return String(Math.round(Math.pow(10,log10)));
+    var scales=[[3,'ألف'],[6,'مليون'],[9,'مليار'],[12,'تريليون'],[15,'كوادريليون']];
+    for(var i=scales.length-1;i>=0;i--){
+      if(log10>=scales[i][0]){
+        var m=Math.pow(10, log10-scales[i][0]);
+        if(log10-scales[i][0]>=3) return '> ألف '+scales[i][1];
+        return (m<10?m.toFixed(1):Math.round(m))+' '+scales[i][1];
+      }
+    }
+    return '١٠^'+Math.round(log10);
+  }
+
+  function humanTime(log10s){
+    if(log10s<0) return {t:'فوري', tier:0};
+    var secs=log10s<300?Math.pow(10,log10s):Infinity;
+    if(secs<1) return {t:'أقل من ثانية', tier:0};
+    if(secs<60) return {t:Math.round(secs)+' ثانية', tier:0};
+    if(secs<3600) return {t:Math.round(secs/60)+' دقيقة', tier:1};
+    if(secs<86400) return {t:Math.round(secs/3600)+' ساعة', tier:1};
+    if(secs<2629800) return {t:Math.round(secs/86400)+' يوم', tier:2};
+    if(secs<YEAR_SECS) return {t:Math.round(secs/2629800)+' شهر', tier:2};
+    // years
+    var logY=log10s-Math.log10(YEAR_SECS);
+    if(logY<3){ var y=Math.pow(10,logY); return {t:Math.round(y).toLocaleString('en-US')+' سنة', tier:(y<50?3:4)}; }
+    var scales=[[3,'ألف'],[6,'مليون'],[9,'مليار'],[12,'تريليون']];
+    for(var i=scales.length-1;i>=0;i--){
+      if(logY>=scales[i][0]){
+        if(logY-scales[i][0]>=3 || i===scales.length-1 && logY-scales[i][0]>=3) {}
+        if(logY>=15) return {t:'أطول من عمر الكون', tier:4};
+        var m=Math.pow(10, logY-scales[i][0]);
+        var num=(m<10?m.toFixed(1):Math.round(m).toLocaleString('en-US'));
+        return {t:num+' '+scales[i][1]+' سنة', tier:4};
+      }
+    }
+    return {t:'قرون', tier:4};
+  }
+
+  function update(){
+    var s=pw.value;
+    var n=s.length;
+    if(n===0){
+      timeEl.textContent='—'; timeEl.style.color='var(--muted)';
+      tierEl.textContent='ابدأ بالكتابة'; tierEl.style.background='var(--muted)';
+      hintEl.innerHTML='&nbsp;'; result.style.borderTopColor='var(--line)';
+      bar.style.width='0'; sLen.textContent='0'; sVar.textContent='0'; sCombo.textContent='—';
+      return;
+    }
+    var pv=poolAndVariety(s);
+    var log10combos=n*Math.log10(pv.pool);
+    var log10secs=log10combos+LOG2*-1-Math.log10(RATE); // /2 average then /rate  → (combos/2)/rate
+    // note: log10(combos/2) = log10combos - log10(2)
+    var res, tierIdx;
+    if(common[s.toLowerCase()]!==undefined){
+      res={t:'فوري', tier:0};
+      hintEl.textContent='هذه من أكثر كلمات المرور شيوعًا — تُجرَّب أولًا!';
+    } else {
+      res=humanTime(log10secs);
+      hintEl.innerHTML='&nbsp;';
+    }
+    tierIdx=res.tier;
+    timeEl.textContent=res.t; timeEl.style.color=tierColors[tierIdx];
+    tierEl.textContent=tierNames[tierIdx]; tierEl.style.background=tierColors[tierIdx];
+    result.style.borderTopColor=tierColors[tierIdx];
+    var pct=Math.max(5,Math.min(100, Math.round((log10combos/22)*100)));
+    bar.style.width=pct+'%'; bar.style.background=tierColors[tierIdx];
+    sLen.textContent=String(n);
+    sVar.textContent=String(pv.variety);
+    sCombo.textContent=comboLabel(log10combos);
+  }
+
+  eye.addEventListener('click',function(){
+    var hidden=pw.type==='password';
+    pw.type=hidden?'text':'password';
+    eye.textContent=hidden?'إخفاء':'إظهار';
+  });
+  pw.addEventListener('input',update);
+  Array.prototype.forEach.call(document.querySelectorAll('.samples button'),function(b){
+    b.addEventListener('click',function(){ pw.value=b.getAttribute('data-pw'); pw.type='text'; eye.textContent='إخفاء'; update(); pw.focus(); });
+  });
+  update();
+})();
+</script>
+
+</body></html>
